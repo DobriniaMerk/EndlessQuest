@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Paragraph{% endblock %}
+
+{% block header %}
+    <h1>{{ paragraph['id'] }} — {{ paragraph['title'] }}</h1>
+    <ul>
+        <li><a class="edit" href="{{ url_for('paragraph.edit', id=paragraph['id']) }}">{% if exists %} Edit {% else %} Add {% endif %}</a>
+    </ul>
+{% endblock %}
+
+{% block content %}
+    {{ rendered | safe}}
+{% endblock %}
