@@ -3,12 +3,19 @@
 {% block title %}Paragraph{% endblock %}
 
 {% block header %}
-    <h1>{{ paragraph['id'] }} — {{ paragraph['title'] }}</h1>
-    <ul>
-        <li><a class="edit" href="{{ url_for('paragraph.edit', id=paragraph['id']) }}">{% if exists %} Edit {% else %} Add {% endif %}</a>
-    </ul>
+    <li><h1>{{ paragraph['id'] }} — {{ paragraph['title'] }}</h1>
+    <li><form method="post">
+        <input name="id" type="number" min="0"  value="{{ paragraph['id'] }}" required>
+        <input type="submit" value="Goto">
+    </form>
+    {% if paragraph['protected'] == 0 %}
+        <li><a class="edit" href="{{ url_for('paragraph.edit', lang=paragraph['lang'], id=paragraph['id']) }}">{% if exists %} Edit {% else %} Add {% endif %}</a>
+    {% else %}
+        <li><a>Edit</a>
+    {% endif %}
+    <li><a class="lang" href="{{ url_for('paragraph.show', lang=('en' if paragraph['lang'] == 'ru' else 'ru'), id=paragraph['id']) }}">{% if paragraph['lang'] == 'en' %} ru {% else %} en {% endif %}</a>
 {% endblock %}
 
 {% block content %}
-    {{ rendered | safe}}
+    {{ paragraph['rendered'] | safe}}
 {% endblock %}

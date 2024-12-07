@@ -32,8 +32,4 @@ def create_app(test_config=None):
     from . import paragraph
     app.register_blueprint(paragraph.bp)
 
-    from . import mainpage
-    app.register_blueprint(mainpage.bp)
-    app.add_url_rule('/', endpoint='mainpage')
-
     return app

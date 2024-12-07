@@ -1,18 +1,18 @@
 {% extends 'base.html' %}
 
 {% block header %}
-    <h1>{% block title %}Edit Paragraph{% endblock %}</h1>
+    <li><h1>{% block title %}Edit Paragraph{% endblock %}</h1>
 {% endblock %}
 
 {% block content %}
-    <form method="post">
-        <label for="title">Title</label>
+    <form class="edit" method="post">
+            <label for="title">Title</label>
         <input name="title" id="title" value="{{ paragraph['title'] }}" required>
         <label for="story">Story</label>
         <textarea name="story" id="story" required>{{ paragraph['story'] }}</textarea>
-        <div class="sameline">
+        <div>
             <input type="submit" value="Save">
-            <a class="align_right" href="{{ url_for('paragraph.show', id=paragraph['id']) }}">Cancel</a>
+            <a href="{{ url_for('paragraph.show', id=paragraph['id'], lang=ln) }}">Cancel</a>
         </div>
     </form>
 

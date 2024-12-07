@@ -1,5 +1,5 @@
 import sqlite3
-
+import datetime
 import click
 from flask import current_app, g
 
@@ -28,8 +28,15 @@ def employ():
         db.executescript(f.read().decode('utf8'))
 
 
-@click.command('init-db')
+@click.command('new-librarian')
 def employ_command():
+    sure = click.confirm('Are you sure you want to start library anew? Old books will persist only in Shadows.')
+    if not sure:
+        return
+
+    db = ask_for_index()
+    db.backup(sqlite3.connect(current_app.config['DATABASE'] + '.' + datetime.datetime.now().strftime('%Y_%m_%d') + '.bak'))
+
     employ()
     click.echo('Librarian ready.')
 
