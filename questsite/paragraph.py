@@ -10,7 +10,7 @@ langs = ['ru', 'en']
 
 #TODO: Translation to all text (links, titles, etc.)
 
-messages = {
+locale = {
     'ru': {
         'not_written': {
             'title': '???',
@@ -20,7 +20,11 @@ messages = {
             'title': '???',
             'story': 'Что было дальше никто не знает, но люди знающие утверждают что такое уже происходило, \
             только тогда все было по-английски и никто ничего не понял. Если вы переводчик, можете объяснить тем, кто не столь сведущ.'
-        }
+        },
+        'edittitle': 'Редактировать',
+        'edit': 'Изменить',
+        'add': 'Добавить',
+        'goto': 'Перейти',
     },
     'en': {
         'not_written': {
@@ -30,7 +34,11 @@ messages = {
         'translate': {
             'title': '???',
             'story': 'What happened next is unclear, but those who have the knowledge of Russian can transfer the truth from over the Edge.'
-        }
+        },
+      'edittitle': 'Edit Paragraph',
+      'edit': 'Edit',
+      'add': 'Add',
+      'goto': 'Goto',
     }
 }
 
@@ -66,36 +74,37 @@ def index():
 
 @bp.route('<lang>/<int:id>', methods=['GET', 'POST'])
 def show(lang, id):
-    if lang not in langs:
+   if lang not in langs:
         return redirect(url_for('paragraph.show', id=id, lang=langs[0]))
 
-    if request.method == 'POST':
+   if request.method == 'POST':
         return redirect(url_for('paragraph.show', id=request.form['id'], lang=lang))
 
-    raw = librarian.ask_for_index().execute('SELECT * FROM paragraphs WHERE id = ?', (id,)).fetchone()
-    e = True
+   raw = librarian.ask_for_index().execute('SELECT * FROM paragraphs WHERE id = ?', (id,)).fetchone()
+   e = True
 
-    paragraph = {
-        'id': id,
-        'lang': lang,
-        'title': '',
-        'story': '',
-        'protected': False
-    }
+   paragraph = {
+     'id': id,
+     'lang': lang,
+     'title': '',
+     'story': '',
+     'protected': False
+   }
 
-    if raw is None:
-        paragraph['title'] = messages[lang]['not_written']['title']
-        paragraph['story'] = messages[lang]['not_written']['story']
-        e = False
-    elif raw[ 'title_' + lang] is None:
-        paragraph['title'] = messages[lang]['translate']['title']
-        paragraph['story'] = messages[lang]['translate']['story']
-    else:
-        paragraph['title'] = raw['title_' + lang]
-        paragraph['story'] = raw['story_' + lang]
-        paragraph['protected'] = raw['protected']
-    paragraph['rendered'] = markdown(escape(paragraph['story']))
-    return render_template('paragraph/show.html', paragraph=paragraph, exists=e)
+   if raw is None:
+     paragraph['title'] = locale[lang]['not_written']['title']
+     paragraph['story'] = locale[lang]['not_written']['story']
+     e = False
+   elif raw[ 'title_' + lang] is None:
+     paragraph['title'] = locale[lang]['translate']['title']
+     paragraph['story'] = locale[lang]['translate']['story']
+     print(paragraph)
+   else:
+     paragraph['title'] = raw['title_' + lang]
+     paragraph['story'] = raw['story_' + lang]
+     paragraph['protected'] = raw['protected']
+   paragraph['rendered'] = markdown(escape(paragraph['story']))
+   return render_template('paragraph/show.html', paragraph=paragraph, exists=e, locale=locale[lang])
 
 
 #TODO: Show "edit" when redirected by edit link and same for add
@@ -121,16 +130,16 @@ def edit(lang, id):
 
     raw = librarian.ask_for_index().execute('SELECT * FROM paragraphs WHERE id = ?', (id,)).fetchone()
     if raw is None:
-        paragraph = {
-            'id': id,
-            'title': '',
-            'story': ''
-        }
+      paragraph = {
+        'id': id,
+        'title': '',
+        'story': ''
+      }
     else:
-        paragraph = {
-            'id': id,
-            'title': raw['title_' + lang],
-            'story': raw['story_' + lang]
-        }
+      paragraph = {
+        'id': id,
+        'title': raw['title_' + lang],
+        'story': raw['story_' + lang]
+      }
 
-    return render_template('paragraph/edit.html', paragraph=paragraph, ln=lang)
+    return render_template('paragraph/edit.html', paragraph=paragraph, ln=lang, locale=locale[lang])
