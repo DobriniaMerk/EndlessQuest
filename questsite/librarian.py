@@ -28,7 +28,7 @@ def employ():
         db.executescript(f.read().decode('utf8'))
 
 
-@click.command('new-librarian')
+@click.command('new-librarian')  # call with `flask --app questsite new-librarian`
 def employ_command():
     sure = click.confirm('Are you sure you want to start library anew? Old books will persist only in Shadows.')
     if not sure:

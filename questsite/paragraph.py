@@ -3,42 +3,57 @@ from flask import Blueprint, redirect, render_template, request, url_for
 from markdown import markdown
 import bleach
 import re
+from random import randint
 
 bp = Blueprint('paragraph', __name__, url_prefix='/')
 
 langs = ['ru', 'en']
 
-#TODO: Translation to all text (links, titles, etc.)
-
 locale = {
     'ru': {
-        'not_written': {
-            'title': '???',
-            'story': 'События с этого момента покрываются туманом, и решительно ничего нельзя разобрать.'
+        'show': {
+            'not_written': {
+                'title': '???',
+                'story': 'События с этого момента покрываются туманом, и решительно ничего нельзя разобрать.'
+            },
+            'translate': {
+                'title': '???',
+                'story': 'Что было дальше никто не знает, но люди знающие утверждают что такое уже происходило, \
+                только тогда все было по-английски и никто ничего не понял. Если вы переводчик, можете объяснить тем, кто не столь сведущ.'
+            },
+            'edit': 'Изменить',
+            'add': 'Добавить',
+            'goto': 'Перейти',
         },
-        'translate': {
-            'title': '???',
-            'story': 'Что было дальше никто не знает, но люди знающие утверждают что такое уже происходило, \
-            только тогда все было по-английски и никто ничего не понял. Если вы переводчик, можете объяснить тем, кто не столь сведущ.'
-        },
-        'edittitle': 'Редактировать',
-        'edit': 'Изменить',
-        'add': 'Добавить',
-        'goto': 'Перейти',
+        'edit': {
+            'page-title': 'Новая страница',
+            'title': 'Заголовок',
+            'story': 'Разворот',
+            'save': 'Записать',
+            'cancel': 'Выбросить черновик',
+        }
     },
     'en': {
-        'not_written': {
-            'title': '???',
-            'story': 'The story from this point is uncertain. Decide the outcome yourself, if you dare.'
+        'show': {
+            'not_written': {
+                'title': '???',
+                'story': 'The story from this point is uncertain. Decide the outcome yourself, if you dare.'
+            },
+            'translate': {
+                'title': '???',
+                'story': 'What happened next is unclear, but those who have the knowledge of Russian can transfer the truth from over the Edge.'
+            },
+            'edit': 'Edit',
+            'add': 'Add',
+            'goto': 'Goto',
         },
-        'translate': {
-            'title': '???',
-            'story': 'What happened next is unclear, but those who have the knowledge of Russian can transfer the truth from over the Edge.'
-        },
-      'edittitle': 'Edit Paragraph',
-      'edit': 'Edit',
-      'add': 'Add',
-      'goto': 'Goto',
+        'edit': {
+            'page-title': 'Write new page',
+            'title': 'Title',
+            'story': 'Story',
+            'save': 'Write',
+            'cancel': 'Rethink',
+        }
     }
 }
 
@@ -48,7 +63,12 @@ def new_paragraph():
     ids = []
     for row in db.execute('SELECT id FROM paragraphs').fetchall():
         ids.append(row['id'])
-    raise NotImplementedError  # TODO: select a new index with items in mind
+    maxparagr = int(db.execute("SELECT * FROM general WHERE name = 'maxparagr'").fetchone()['value'])
+
+    new_id = randint(2, maxparagr)
+    while (new_id in ids):
+        new_id = randint(2, maxparagr)
+    return new_id
 
 
 def clean(text):
@@ -62,52 +82,61 @@ def escape(text):
 
 
 def fill_links(text):
-    def callback(match):
+    def fill(match):
         return f'[{match.group(1)}]({new_paragraph()})'
 
-    return re.sub(r'\[([^]]*)\]\(\)', callback, text)
+    def parenth(match):
+        print('MATCHED!!!!')
+        return f'[{match.group(1)}]()'
+
+    text = re.sub(r'\[([^]\n]+)\](?!\()', parenth, text)  # [...] -> [...]()
+    return re.sub(r'\[([^]\n]+)\]\(\)', fill, text)  # [...]() -> [...](№)
 
 
 @bp.route('/', methods=['GET'])
 def index():
     return redirect(url_for('paragraph.show', id=0, lang=langs[0]))
 
+
 @bp.route('<lang>/<int:id>', methods=['GET', 'POST'])
 def show(lang, id):
-   if lang not in langs:
+    if lang not in langs:
         return redirect(url_for('paragraph.show', id=id, lang=langs[0]))
 
-   if request.method == 'POST':
+    if request.method == 'POST':
         return redirect(url_for('paragraph.show', id=request.form['id'], lang=lang))
 
-   raw = librarian.ask_for_index().execute('SELECT * FROM paragraphs WHERE id = ?', (id,)).fetchone()
-   e = True
+    db = librarian.ask_for_index()
+    raw = db.execute('SELECT * FROM paragraphs WHERE id = ?', (id,)).fetchone()
+    e = True
 
-   paragraph = {
-     'id': id,
-     'lang': lang,
-     'title': '',
-     'story': '',
-     'protected': False
-   }
+    paragraph = {
+        'id': id,
+        'lang': lang,
+        'title': '',
+        'story': '',
+        'protected': False
+    }
 
-   if raw is None:
-     paragraph['title'] = locale[lang]['not_written']['title']
-     paragraph['story'] = locale[lang]['not_written']['story']
-     e = False
-   elif raw[ 'title_' + lang] is None:
-     paragraph['title'] = locale[lang]['translate']['title']
-     paragraph['story'] = locale[lang]['translate']['story']
-     print(paragraph)
-   else:
-     paragraph['title'] = raw['title_' + lang]
-     paragraph['story'] = raw['story_' + lang]
-     paragraph['protected'] = raw['protected']
-   paragraph['rendered'] = markdown(escape(paragraph['story']))
-   return render_template('paragraph/show.html', paragraph=paragraph, exists=e, locale=locale[lang])
+    if raw is None:
+        paragraph['title'] = locale[lang]['not_written']['title']
+        paragraph['story'] = locale[lang]['not_written']['story']
+        e = False
+    elif raw['current_' + lang] is None:
+        paragraph['title'] = locale[lang]['translate']['title']
+        paragraph['story'] = locale[lang]['translate']['story']
+    else:
+        paragraph['protected'] = raw['protected']  # intended before rewriting `raw`
+
+        raw = db.execute('SELECT * FROM edits WHERE id = ?', (raw['current_' + lang],)).fetchone()
+        paragraph['title'] = raw['title']
+        paragraph['story'] = raw['story']
 
 
-#TODO: Show "edit" when redirected by edit link and same for add
+    paragraph['rendered'] = markdown(escape(paragraph['story']), extensions=['nl2br'])
+    return render_template('paragraph/show.html', paragraph=paragraph, exists=e, locale=locale[lang]['show'])
+
+
 @bp.route('<lang>/<int:id>/edit', methods=('GET', 'POST'))
 def edit(lang, id):
     if lang not in langs:
@@ -118,28 +147,40 @@ def edit(lang, id):
         story = fill_links(clean(request.form['story']))
 
         if not title:
-            return redirect(url_for('paragraph.show', id=4046, lang=lang))
+            return redirect(url_for('paragraph.show', id=4096, lang=lang))
 
         db = librarian.ask_for_index()
-        if db.execute('SELECT * FROM paragraphs WHERE id = ?', (id,)).fetchone() is None:
-            db.execute(f'INSERT INTO paragraphs (id, title_{lang}, story_{lang}) VALUES (?, ?, ?)', (id, title, story))
-        else:
-            db.execute(f'UPDATE paragraphs SET title_{lang} = ?, story_{lang} = ? WHERE id = ?', (title, story, id))
+        paragraph = db.execute('SELECT * FROM paragraphs WHERE id = ?', (id,)).fetchone()
+
+        if paragraph is None:
+            paragraph = db.execute('INSERT INTO paragraphs (id) VALUES (?) RETURNING *', (id,)).fetchone()
+
+        index = db.execute('''INSERT INTO edits (paragraph, lang, type, previous, title, story)
+                      VALUES (?, ?, ?, ?, ?, ?) RETURNING id''', (
+                          id,
+                          lang,
+                          'new' if paragraph['current_' + lang] is None else 'edit',
+                          paragraph['current_' + lang],
+                          title,
+                          story
+                      )).fetchone()[0]
+        db.execute(f'UPDATE paragraphs SET current_{lang} = ? WHERE id = ?', (index, id))
+
         db.commit()
+
         return redirect(url_for('paragraph.show', id=id, lang=lang))
 
-    raw = librarian.ask_for_index().execute('SELECT * FROM paragraphs WHERE id = ?', (id,)).fetchone()
-    if raw is None:
-      paragraph = {
+    db = librarian.ask_for_index()
+    raw = db.execute('SELECT * FROM paragraphs WHERE id = ?', (id,)).fetchone()
+    paragraph = {
         'id': id,
         'title': '',
         'story': ''
-      }
-    else:
-      paragraph = {
-        'id': id,
-        'title': raw['title_' + lang],
-        'story': raw['story_' + lang]
-      }
+    }
+    if raw is not None and raw['current_' + lang] is not None:
+        raw = db.execute('SELECT * FROM edits WHERE id = ?', (raw['current_' + lang],)).fetchone()
 
-    return render_template('paragraph/edit.html', paragraph=paragraph, ln=lang, locale=locale[lang])
+        paragraph['title'] = raw['title']
+        paragraph['story'] = raw['story']
+
+    return render_template('paragraph/edit.html', paragraph=paragraph, ln=lang, locale=locale[lang]['edit'])
