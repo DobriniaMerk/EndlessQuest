@@ -1,5 +1,7 @@
 instance/
-*.*~  # emacs autosave files
+
+# emacs autosave files
+*~
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
