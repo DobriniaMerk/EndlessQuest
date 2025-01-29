@@ -1,9 +1,9 @@
+import re
+from random import randint
 from questsite import librarian
 from flask import Blueprint, redirect, render_template, request, url_for
 from markdown import markdown
 import bleach
-import re
-from random import randint
 
 bp = Blueprint('paragraph', __name__, url_prefix='/')
 
@@ -29,7 +29,7 @@ locale = {
             'page-title': 'Новая страница',
             'title': 'Заголовок',
             'story': 'Разворот',
-            'save': 'Записать',
+            'save': 'Опубликовать',
             'cancel': 'Выбросить черновик',
         }
     },
@@ -51,8 +51,8 @@ locale = {
             'page-title': 'Write new page',
             'title': 'Title',
             'story': 'Story',
-            'save': 'Write',
-            'cancel': 'Rethink',
+            'save': 'Publish',
+            'cancel': 'Better not',
         }
     }
 }
@@ -119,12 +119,12 @@ def show(lang, id):
     }
 
     if raw is None:
-        paragraph['title'] = locale[lang]['not_written']['title']
-        paragraph['story'] = locale[lang]['not_written']['story']
+        paragraph['title'] = locale[lang]['show']['not_written']['title']
+        paragraph['story'] = locale[lang]['show']['not_written']['story']
         e = False
     elif raw['current_' + lang] is None:
-        paragraph['title'] = locale[lang]['translate']['title']
-        paragraph['story'] = locale[lang]['translate']['story']
+        paragraph['title'] = locale[lang]['show']['translate']['title']
+        paragraph['story'] = locale[lang]['show']['translate']['story']
     else:
         paragraph['protected'] = raw['protected']  # intended before rewriting `raw`
 
@@ -171,6 +171,7 @@ def edit(lang, id):
         return redirect(url_for('paragraph.show', id=id, lang=lang))
 
     db = librarian.ask_for_index()
+
     raw = db.execute('SELECT * FROM paragraphs WHERE id = ?', (id,)).fetchone()
     paragraph = {
         'id': id,

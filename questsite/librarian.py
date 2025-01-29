@@ -34,8 +34,12 @@ def employ_command():
     if not sure:
         return
 
+    click.echo("Leaving Shadow image at: " + current_app.config['DATABASE'] + '.' + datetime.datetime.now().strftime('%Y_%m_%d') + '.bak')
+
     db = ask_for_index()
     db.backup(sqlite3.connect(current_app.config['DATABASE'] + '.' + datetime.datetime.now().strftime('%Y_%m_%d') + '.bak'))
+
+    click.echo("Creating library at: " + current_app.config['DATABASE'])
 
     employ()
     click.echo('Librarian ready.')
